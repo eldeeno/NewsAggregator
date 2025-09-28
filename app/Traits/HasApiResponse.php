@@ -4,7 +4,7 @@ namespace App\Traits;
 
 use Illuminate\Http\JsonResponse;
 
-trait ApiResponse
+trait HasApiResponse
 {
     protected function successResponse($data = null, string $message = null, int $code = 200): JsonResponse
     {
