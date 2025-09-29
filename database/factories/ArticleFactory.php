@@ -18,7 +18,7 @@ class ArticleFactory extends Factory
     public function definition(): array
     {
         return [
-            'source_id' => NewsSource::factory(),
+            'news_source_id' => NewsSource::factory(),
             'external_id' => $this->faker->uuid,
             'title' => $this->faker->sentence,
             'content' => $this->faker->paragraphs(3, true),

@@ -3,13 +3,16 @@
 namespace App\Models;
 
 use Illuminate\Contracts\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Article extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
-        'source_id',
+        'news_source_id',
         'external_id',
         'title',
         'content',
@@ -25,9 +28,9 @@ class Article extends Model
         'published_at' => 'datetime',
     ];
 
-    public function newsSource(): BelongsTo
+    public function source(): BelongsTo
     {
-        return $this->belongsTo(NewsSource::class);
+        return $this->belongsTo(NewsSource::class, 'news_source_id');
     }
 
     public function scopeSearch(Builder $query, string $search): Builder
