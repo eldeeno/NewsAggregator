@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('articles', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('news_source_id')->constrained()->onDelete('cascade');
+            $table->foreignId('news_source_id');
             $table->string('external_id')->nullable();
             $table->string('title');
             $table->text('content');
