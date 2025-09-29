@@ -9,4 +9,8 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
-Schedule::command('news:fetch')->everyMinute();
+Schedule::command('news:fetch')->everyFiveMinutes()
+    ->withoutOverlapping()
+    ->appendOutputTo(storage_path('logs/news-aggregation.log'));
+
+Schedule::command('queue:retry all')->everyFifteenMinutes();

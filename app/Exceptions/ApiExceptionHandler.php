@@ -31,6 +31,7 @@ class ApiExceptionHandler
         MethodNotAllowedHttpException::class => 'handleMethodNotAllowedException',
         HttpException::class => 'handleHttpException',
         QueryException::class => 'handleQueryException',
+        Throwable::class => 'handleGenericException',
     ];
 
     /**
@@ -226,5 +227,31 @@ class ApiExceptionHandler
         ], $context);
 
         Log::warning($message, $logContext);
+    }
+
+    /**
+     * Handle generic exceptions
+     */
+    public function handleGenericException(Throwable $e, Request $request): JsonResponse
+    {
+        $this->logException($e, 'Unhandled exception occurred');
+
+        $statusCode = method_exists($e, 'getStatusCode') ? $e->getStatusCode() : 500;
+
+        return response()->json([
+            'error' => [
+                'type' => $this->getExceptionType($e),
+                'status' => $statusCode,
+                'message' => config('app.debug')
+                    ? $e->getMessage()
+                    : 'An unexpected error occurred. Please try again later.',
+                'timestamp' => now()->toISOString(),
+                'debug' => config('app.debug') ? [
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine(),
+                    'trace' => $e->getTrace(),
+                ] : null,
+            ]
+        ], $statusCode);
     }
 }

@@ -2,39 +2,55 @@
 
 namespace App\Console\Commands;
 
-use App\Services\NewsAggregatorService;
+use App\Jobs\FetchNewsJob;
+use App\Models\NewsSource;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Log;
 
 class FetchNewsArticles extends Command
 {
-    /**
-     * The name and signature of the console command.
-     *
-     * @var string
-     */
-    protected $signature = 'news:fetch';
+    protected $signature = 'news:fetch
+                            {--source= : Fetch from a specific source}
+                            {--sync : Run synchronously without queue}';
 
-    /**
-     * The console command description.
-     *
-     * @var string
-     */
-    protected $description = 'Fetch articles from all active news sources';
+    protected $description = 'Fetch articles from active news sources';
 
-    /**
-     * Execute the console command.
-     */
-    public function handle(NewsAggregatorService $newsAggregator)
+    public function handle(): int
     {
-        $this->info('Starting news aggregation...');
+        $specificSource = $this->option('source');
+        $useSync = $this->option('sync');
 
-        try {
-            $newsAggregator->aggregateArticles();
-            $this->info('News aggregation completed successfully.');
-            return Command::SUCCESS;
-        } catch (\Exception $e) {
-            $this->error('Error during news aggregation: ' . $e->getMessage());
+        $query = NewsSource::where('is_active', true);
+
+        if ($specificSource) {
+            $query->where('api_service', $specificSource);
+        }
+
+        $sources = $query->get();
+
+        if ($sources->isEmpty()) {
+            $this->error('No active news sources found!');
             return Command::FAILURE;
         }
+
+        $this->info("Found {$sources->count()} active sources");
+
+        foreach ($sources as $source) {
+            if ($useSync) {
+                // Run synchronously
+                $this->info("Processing {$source->name} synchronously...");
+                dispatch_now(new FetchNewsJob($source->id));
+            } else {
+                // Dispatch to queue
+                $this->info("Dispatching job for {$source->name}...");
+                FetchNewsJob::dispatch($source->id);
+            }
+        }
+
+        if (!$useSync) {
+            $this->info('All jobs dispatched to queue.');
+        }
+
+        return Command::SUCCESS;
     }
 }

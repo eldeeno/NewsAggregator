@@ -7,9 +7,9 @@ use App\Http\Requests\ArticleSearchRequest;
 use App\Http\Resources\ArticleResource;
 use App\Models\Article;
 use App\Models\NewsSource;
-use App\Models\Source;
-use App\Traits\HasApiResponse;
+use App\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Log;
 
 class ArticleController extends Controller
 {
@@ -17,9 +17,8 @@ class ArticleController extends Controller
     {
         $query = Article::with('source')->latest('published_at');
 
-        $this->searchWithFilter($query, $request);
-
-        $this->searchWithUserPreferences($query, $request);
+        $this->applySearchFilters($query, $request);
+        $this->applyUserPreferences($query, $request);
 
         $perPage = $request->per_page ?? 20;
         $articles = $query->paginate($perPage);
@@ -40,40 +39,65 @@ class ArticleController extends Controller
         );
     }
 
-    private function searchWithFilter($query, ArticleSearchRequest $request): void
+    private function applySearchFilters($query, ArticleSearchRequest $request): void
     {
-        if ($request->has('search') && $request->search) {
+        // Search term
+        if ($request->filled('search')) {
             $query->search($request->search);
         }
 
-        if ($request->has('category') && $request->category) {
-            $query->byCategory($request->category);
+        // Category filter - support single category or comma-separated multiple categories
+        if ($request->filled('category')) {
+            $categories = $this->parseCategories($request->category);
+            if (count($categories) > 1) {
+                $query->byCategories($categories);
+            } else {
+                $query->byCategory($categories[0]);
+            }
         }
 
-        if ($request->has('source') && $request->source) {
-            $query->bySource($request->source);
+        // Source filter
+        if ($request->filled('source')) {
+            $sources = is_array($request->source) ? $request->source : [$request->source];
+            $query->bySource($sources);
         }
 
-        if ($request->has('author') && $request->author) {
+        // Author filter
+        if ($request->filled('author')) {
             $query->byAuthor($request->author);
         }
 
-        if ($request->has('from_date') && $request->from_date) {
-            $query->publishedBetween(
-                $request->from_date,
-                $request->to_date ?? now()->toDateString()
-            );
+        // Date range filter
+        if ($request->filled('from_date')) {
+            $toDate = $request->to_date ?? now()->toDateString();
+            $query->publishedBetween($request->from_date, $toDate);
         }
     }
 
-    private function searchWithUserPreferences($query, ArticleSearchRequest $request): void
+    /**
+     * Parse categories from request - support array, comma-separated, or single value
+     */
+    private function parseCategories($categoryInput): array
+    {
+        if (is_array($categoryInput)) {
+            return $categoryInput;
+        }
+
+        if (str_contains($categoryInput, ',')) {
+            return array_map('trim', explode(',', $categoryInput));
+        }
+
+        return [trim($categoryInput)];
+    }
+
+    private function applyUserPreferences($query, ArticleSearchRequest $request): void
     {
         if (!$request->user() || !$request->user()->preferences) {
             return;
         }
 
         $preferences = $request->user()->preferences;
-        $hasExplicitFilters = $request->hasAny(['search', 'category', 'source', 'author']);
+        $hasExplicitFilters = $request->hasAny(['search', 'category', 'source', 'author', 'from_date']);
 
         if (!$hasExplicitFilters) {
             if (!empty($preferences->preferred_sources)) {
@@ -81,6 +105,7 @@ class ArticleController extends Controller
             }
 
             if (!empty($preferences->preferred_categories)) {
+                Log::info(123);
                 $query->whereIn('category', $preferences->preferred_categories);
             }
 
@@ -95,7 +120,7 @@ class ArticleController extends Controller
     }
 
     /**
-     * Get available filter options (sources, categories, authors)
+     * Get available filter options
      */
     public function filters(): JsonResponse
     {
@@ -105,15 +130,16 @@ class ArticleController extends Controller
                 ->toArray(),
             'categories' => Article::distinct()
                 ->whereNotNull('category')
+                ->where('category', '!=', '')
+                ->orderBy('category')
                 ->pluck('category')
-                ->filter()
                 ->values()
                 ->toArray(),
             'authors' => Article::distinct()
                 ->whereNotNull('author')
                 ->where('author', '!=', '')
+                ->orderBy('author')
                 ->pluck('author')
-                ->filter()
                 ->values()
                 ->toArray(),
         ];

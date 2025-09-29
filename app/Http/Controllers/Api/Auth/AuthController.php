@@ -4,8 +4,8 @@ namespace App\Http\Controllers\Api\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\LoginRequest;
+use App\Http\Requests\RegisterRequest;
 use App\Models\User;
-use App\Traits\HasApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -13,7 +13,33 @@ use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
-    use HasApiResponse;
+    public function register(RegisterRequest $request): JsonResponse
+    {
+        try {
+            $user = User::create([
+                'name' => $request->name,
+                'email' => $request->email,
+                'password' => Hash::make($request->password),
+            ]);
+
+            // Create user preferences record
+            $user->preferences()->create([
+                'preferred_sources' => [],
+                'preferred_categories' => [],
+                'preferred_authors' => [],
+            ]);
+
+            $token = $user->createToken('api-token')->plainTextToken;
+
+            return $this->successResponse([
+                'token' => $token,
+                'user' => $user,
+            ], 'Registration successful');
+
+        } catch (\Exception $e) {
+            return $this->errorResponse('Registration failed. Please try again.', 500);
+        }
+    }
 
     public function login(LoginRequest $request): JsonResponse
     {
@@ -42,6 +68,8 @@ class AuthController extends Controller
 
     public function user(Request $request): JsonResponse
     {
-        return $this->successResponse($request->user());
+        $user = $request->user()->load('preferences');
+
+        return $this->successResponse($user);
     }
 }

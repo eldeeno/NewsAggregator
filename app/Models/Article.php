@@ -36,20 +36,48 @@ class Article extends Model
     public function scopeSearch(Builder $query, string $search): Builder
     {
         return $query->where(function ($q) use ($search) {
-            $q->whereFullText(['title', 'content'], $search)
-                ->orWhere('title', 'like', "%{$search}%")
-                ->orWhere('content', 'like', "%{$search}%");
+            $q->where('title', 'like', "%{$search}%")
+                ->orWhere('content', 'like', "%{$search}%")
+                ->orWhere('excerpt', 'like', "%{$search}%");
         });
     }
 
     public function scopeByCategory(Builder $query, string $category): Builder
     {
+        return $query->where('category', 'like', "%{$category}%");
+    }
+
+    /**
+     * Exact match category scope
+     */
+    public function scopeByCategoryExact(Builder $query, string $category): Builder
+    {
         return $query->where('category', $category);
     }
 
-    public function scopeBySource(Builder $query, array $sources): Builder
+    /**
+     * Scope for multiple categories (exact match)
+     */
+    public function scopeByCategories(Builder $query, array $categories): Builder
     {
-        return $query->whereIn('source_id', $sources);
+        return $query->whereIn('category', $categories);
+    }
+
+    /**
+     * Scope for multiple categories (LIKE match)
+     */
+    public function scopeByCategoriesLike(Builder $query, array $categories): Builder
+    {
+        return $query->where(function ($q) use ($categories) {
+            foreach ($categories as $category) {
+                $q->orWhere('category', 'like', "%{$category}%");
+            }
+        });
+    }
+
+    public function scopeBySource(Builder $query, array $sourceIds): Builder
+    {
+        return $query->whereIn('news_source_id', $sourceIds);
     }
 
     public function scopeByAuthor(Builder $query, string $author): Builder
@@ -61,5 +89,4 @@ class Article extends Model
     {
         return $query->whereBetween('published_at', [$from, $to]);
     }
-
 }

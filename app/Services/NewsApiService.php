@@ -23,7 +23,7 @@ class NewsApiService
             $response = Http::get("{$this->baseUrl}/everything", [
                 'apiKey' => $this->apiKey,
                 'sources' => 'techcrunch,reuters',
-                'pageSize' => 50,
+                'pageSize' => 100,
                 'sortBy' => 'publishedAt',
             ]);
 
