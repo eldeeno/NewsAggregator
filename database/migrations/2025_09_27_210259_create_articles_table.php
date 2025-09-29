@@ -16,7 +16,7 @@ return new class extends Migration
             $table->foreignId('news_source_id');
             $table->string('external_id')->nullable();
             $table->string('title');
-            $table->text('content');
+            $table->longText('content');
             $table->text('excerpt')->nullable();
             $table->string('author')->nullable();
             $table->string('category')->nullable();
