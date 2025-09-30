@@ -1,8 +1,10 @@
 <?php
 
 use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 
+uses(RefreshDatabase::class);
 describe('Authentication', function () {
     it('can login with valid credentials', function () {
         $user = User::factory()->create([
@@ -32,7 +34,9 @@ describe('Authentication', function () {
         ]);
 
         $response->assertStatus(422)
-            ->assertJsonValidationErrors(['email']);
+            ->assertJsonPath('error.status', 422)
+            ->assertJsonPath('error.validation_errors.0.field', 'email')
+            ->assertJsonPath('error.validation_errors.0.message', 'The provided credentials are incorrect.');
     });
 
     it('can logout authenticated user', function () {

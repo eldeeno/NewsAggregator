@@ -4,16 +4,22 @@ use App\Models\Article;
 use App\Models\NewsSource;
 use App\Models\User;
 use Laravel\Sanctum\Sanctum;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+
+uses(RefreshDatabase::class);
 
 describe('Articles', function () {
     beforeEach(function () {
         $this->source = NewsSource::factory()->create();
         $this->articles = Article::factory()->count(10)->create([
-            'source_id' => $this->source->id
+            'news_source_id' => $this->source->id
         ]);
     });
 
     it('can list articles with pagination', function () {
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
+
         $response = $this->getJson('/api/articles');
 
         $response->assertStatus(200)
@@ -26,6 +32,9 @@ describe('Articles', function () {
     });
 
     it('can search articles by keyword', function () {
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
+
         $article = $this->articles->first();
 
         $response = $this->getJson("/api/articles?search={$article->title}");
@@ -35,8 +44,11 @@ describe('Articles', function () {
     });
 
     it('can filter articles by category', function () {
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
+
         $article = Article::factory()->create([
-            'source_id' => $this->source->id,
+            'news_source_id' => $this->source->id,
             'category' => 'technology'
         ]);
 
@@ -47,6 +59,9 @@ describe('Articles', function () {
     });
 
     it('can show individual article', function () {
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
+
         $article = $this->articles->first();
 
         $response = $this->getJson("/api/articles/{$article->id}");
@@ -71,6 +86,5 @@ describe('Articles', function () {
         $response = $this->getJson('/api/articles');
 
         $response->assertStatus(200);
-        // Add more specific assertions based on your preference logic
     });
 });
