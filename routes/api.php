@@ -19,7 +19,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/articles', [ArticleController::class, 'index']);
     Route::get('/articles/filters', [ArticleController::class, 'filters']);
-    Route::get('/articles/{article}', [ArticleController::class, 'show']);
+    Route::get('/articles/{id}', [ArticleController::class, 'show']);
 
     Route::get('/preferences', [UserPreferenceController::class, 'show']);
     Route::put('/preferences', [UserPreferenceController::class, 'update']);

@@ -29,9 +29,9 @@ class ArticleController extends Controller
         );
     }
 
-    public function show(Article $article): JsonResponse
+    public function show($id): JsonResponse
     {
-        $article->load('source');
+        $article = Article::with('source')->findOrFail($id);
 
         return $this->successResponse(
             new ArticleResource($article),
